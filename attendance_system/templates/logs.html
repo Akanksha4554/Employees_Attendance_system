@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Reports | Face Attendance</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        .nav-tabs {
+            display: flex;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+        .nav-tab {
+            flex: 1;
+            padding: 18px;
+            text-align: center;
+            text-decoration: none;
+            color: #666;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .nav-tab:hover {
+            background: #f8f9fa;
+        }
+        .nav-tab.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .download-section {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            padding: 40px;
+            border-radius: 15px;
+            margin: 30px 0;
+        }
+        .download-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+        .download-section h2 {
+            margin-bottom: 15px;
+            font-size: 1.8rem;
+        }
+        .download-section p {
+            margin-bottom: 25px;
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        .btn {
+            background: white;
+            color: #28a745;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        .file-list {
+            margin-top: 30px;
+        }
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            transition: transform 0.2s;
+        }
+        .file-item:hover {
+            transform: translateX(5px);
+            background: #e9ecef;
+        }
+        .file-icon {
+            color: #28a745;
+            margin-right: 15px;
+            font-size: 24px;
+        }
+        .file-info {
+            flex: 1;
+            text-align: left;
+        }
+        .file-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .file-date {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+        }
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #ddd;
+        }
+        .current-date {
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1><i class="fas fa-file-excel"></i> Attendance Reports</h1>
+            <p>Download attendance logs in Excel format</p>
+        </div>
+
+        <!-- Navigation -->
+        <div class="nav-tabs">
+            <a href="/register" class="nav-tab">
+                <i class="fas fa-user-plus"></i> Register
+            </a>
+            <a href="/attendance" class="nav-tab">
+                <i class="fas fa-camera"></i> Attendance
+            </a>
+            <a href="/logs" class="nav-tab active">
+                <i class="fas fa-file-excel"></i> Reports
+            </a>
+        </div>
+
+        <!-- Main Card -->
+        <div class="card">
+            <div class="current-date">
+                <i class="fas fa-calendar"></i> Today's Date: <span id="current-date"></span>
+            </div>
+
+            <!-- Excel Download Section -->
+            <div class="download-section">
+                <div class="download-icon">
+                    <i class="fas fa-file-excel"></i>
+                </div>
+                <h2>Download Today's Attendance Report</h2>
+                <p>Get the complete attendance data in Microsoft Excel format for today</p>
+                <button class="btn" onclick="downloadTodayExcel()" id="download-btn">
+                    <i class="fas fa-download"></i> Download Excel File
+                </button>
+            </div>
+
+            <!-- Previous Files -->
+            <h3 style="color: #333; margin-top: 40px; margin-bottom: 20px; text-align: left;">
+                <i class="fas fa-history"></i> Previous Attendance Files
+            </h3>
+            
+            <div class="file-list" id="file-list">
+                <!-- Will be filled by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set current date
+        function setCurrentDate() {
+            const today = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('current-date').textContent = today.toLocaleDateString('en-US', options);
+        }
+        
+        // Download today's Excel
+        function downloadTodayExcel() {
+            const button = document.getElementById('download-btn');
+            const originalText = button.innerHTML;
+            
+            // Show loading
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing Download...';
+            button.disabled = true;
+            
+            // Trigger download
+            window.location.href = '/api/download_today_attendance';
+            
+            // Reset button after 2 seconds
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }, 2000);
+        }
+        
+        // Load previous files from server
+        async function loadPreviousFiles() {
+            const fileList = document.getElementById('file-list');
+            fileList.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading files...</p></div>';
+            
+            try {
+                // Fetch available files from server
+                // Note: We need to create an API endpoint for this
+                const response = await fetch('/api/list_attendance_files');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.success && data.files && data.files.length > 0) {
+                        let html = '';
+                        
+                        data.files.forEach(file => {
+                            const dateStr = file.filename.replace('attendance_', '').replace('.xlsx', '');
+                            const date = new Date(dateStr);
+                            const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+                            const formattedDate = date.toLocaleDateString('en-US', { 
+                                year: 'numeric', 
+                                month: 'short', 
+                                day: 'numeric' 
+                            });
+                            
+                            html += `
+                                <div class="file-item">
+                                    <div class="file-icon">
+                                        <i class="fas fa-file-excel"></i>
+                                    </div>
+                                    <div class="file-info">
+                                        <div class="file-name">${file.filename}</div>
+                                        <div class="file-date">${dayName}, ${formattedDate}</div>
+                                    </div>
+                                    <button class="btn" onclick="downloadFile('${file.filename}')" style="padding: 8px 20px; font-size: 0.9rem;">
+                                        <i class="fas fa-download"></i> Download
+                                    </button>
+                                </div>
+                            `;
+                        });
+                        
+                        fileList.innerHTML = html;
+                    } else {
+                        fileList.innerHTML = `
+                            <div class="empty-state">
+                                <i class="fas fa-file-excel"></i>
+                                <p>No attendance files found</p>
+                            </div>
+                        `;
+                    }
+                } else {
+                    throw new Error('Failed to fetch files');
+                }
+            } catch (error) {
+                console.error('Error loading files:', error);
+                fileList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <p>Unable to load attendance files</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Download specific file
+        function downloadFile(filename) {
+            window.location.href = `/api/download_attendance_file/${filename}`;
+        }
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', function() {
+            setCurrentDate();
+            loadPreviousFiles();
+        });
+    </script>
+</body>
+</html>

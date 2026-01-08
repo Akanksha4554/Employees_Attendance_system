@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register Employee | Face Attendance</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        input:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        .camera-container {
+            width: 100%;
+            height: 400px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+            border: 3px solid #4CAF50;
+            background: #000;
+        }
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #45a049;
+        }
+        .btn-secondary {
+            background: #666;
+        }
+        .btn-secondary:hover {
+            background: #555;
+        }
+        .feedback {
+            font-size: 14px;
+            margin-top: 5px;
+            padding: 5px;
+            border-radius: 4px;
+        }
+        .success {
+            color: #155724;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            color: #721c24;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px;">
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-user-plus"></i> Employee Registration</h1>
+            <p>Register employees for face recognition attendance</p>
+        </div>
+
+        <div class="card">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                <!-- Left: Form -->
+                <div>
+                    <h2><i class="fas fa-id-card"></i> Employee Details</h2>
+                    
+                    <div class="form-group">
+                        <label for="employee_id"><i class="fas fa-id-badge"></i> Employee ID *</label>
+                        <input type="text" id="employee_id" placeholder="EMP001" required>
+                        <div class="feedback" id="id-feedback"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="name"><i class="fas fa-user"></i> Full Name *</label>
+                        <input type="text" id="name" placeholder="John Doe" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="department"><i class="fas fa-building"></i> Department</label>
+                        <input type="text" id="department" placeholder="Engineering">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="position"><i class="fas fa-briefcase"></i> Position</label>
+                        <input type="text" id="position" placeholder="Software Engineer">
+                    </div>
+                    
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px;">
+                        <h4><i class="fas fa-lightbulb"></i> Tips:</h4>
+                        <ul style="padding-left: 20px; color: #666;">
+                            <li>Use unique Employee ID</li>
+                            <li>Face camera directly</li>
+                            <li>Ensure good lighting</li>
+                            <li>Keep neutral expression</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- Right: Camera -->
+                <div>
+                    <h2><i class="fas fa-camera"></i> Face Capture</h2>
+                    <p>Position face in the center</p>
+                    
+                    <div class="camera-container">
+                        <video id="register-video" autoplay playsinline></video>
+                    </div>
+                    
+                    <button class="btn" onclick="registerEmployee()">
+                        <i class="fas fa-save"></i> Register Employee
+                    </button>
+                    
+                    <button class="btn btn-secondary" onclick="window.location.href='/attendance'" style="margin-top: 10px;">
+                        <i class="fas fa-arrow-left"></i> Back to Attendance
+                    </button>
+                    
+                    <div id="result" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let videoStream = null;
+        
+        // Initialize camera
+        async function initCamera() {
+            try {
+                const video = document.getElementById('register-video');
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 640, height: 480 }
+                });
+                video.srcObject = stream;
+                videoStream = stream;
+            } catch (error) {
+                console.error('Camera error:', error);
+                alert('Camera access required for registration');
+            }
+        }
+        
+        // Capture image
+        function captureImage() {
+            const video = document.getElementById('register-video');
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            return canvas.toDataURL('image/jpeg');
+        }
+        
+        // Check employee ID availability
+        async function checkEmployeeId() {
+            const employeeId = document.getElementById('employee_id').value.trim();
+            const feedback = document.getElementById('id-feedback');
+            
+            if (employeeId.length < 3) {
+                feedback.textContent = 'Minimum 3 characters';
+                feedback.className = 'feedback error';
+                return false;
+            }
+            
+            try {
+                const response = await fetch('/api/check_employee', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ employee_id: employeeId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.available) {
+                    feedback.textContent = '✓ Available';
+                    feedback.className = 'feedback success';
+                    return true;
+                } else {
+                    feedback.textContent = data.message;
+                    feedback.className = 'feedback error';
+                    return false;
+                }
+            } catch (error) {
+                feedback.textContent = 'Error checking';
+                feedback.className = 'feedback error';
+                return false;
+            }
+        }
+        
+        // Register employee
+        async function registerEmployee() {
+            const employeeId = document.getElementById('employee_id').value.trim();
+            const name = document.getElementById('name').value.trim();
+            const department = document.getElementById('department').value.trim();
+            const position = document.getElementById('position').value.trim();
+            const resultDiv = document.getElementById('result');
+            
+            // Validate
+            if (!employeeId || !name) {
+                resultDiv.innerHTML = '<div class="feedback error">Employee ID and Name required</div>';
+                return;
+            }
+            
+            // Check ID availability
+            if (!await checkEmployeeId()) {
+                return;
+            }
+            
+            // Show loading
+            resultDiv.innerHTML = '<div>Processing...</div>';
+            
+            try {
+                // Capture image
+                const imageData = captureImage();
+                
+                // Send registration request
+                const response = await fetch('/api/register_employee', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        employee_id: employeeId,
+                        name: name,
+                        department: department,
+                        position: position,
+                        image: imageData
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="feedback success">
+                            <h3>✓ Registration Successful!</h3>
+                            <p>${data.message}</p>
+                            <p>Employee can now use face recognition for attendance.</p>
+                        </div>
+                    `;
+                    
+                    // Clear form
+                    document.getElementById('employee_id').value = '';
+                    document.getElementById('name').value = '';
+                    document.getElementById('department').value = '';
+                    document.getElementById('position').value = '';
+                    document.getElementById('id-feedback').innerHTML = '';
+                } else {
+                    resultDiv.innerHTML = `<div class="feedback error">${data.message}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="feedback error">Error: ${error.message}</div>`;
+            }
+        }
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', function() {
+            initCamera();
+            
+            // Check ID on input
+            document.getElementById('employee_id').addEventListener('input', function() {
+                if (this.value.length >= 3) {
+                    checkEmployeeId();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
