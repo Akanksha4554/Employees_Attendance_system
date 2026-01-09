@@ -125,6 +125,15 @@
         .result-message {
             font-size: 1.2rem;
             font-weight: 500;
+            margin-bottom: 10px;
+        }
+        .names-list {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
         }
     </style>
 </head>
@@ -186,7 +195,7 @@
                 document.getElementById('capture-btn').disabled = false;
             } catch (error) {
                 console.error('Camera error:', error);
-                showResult('error', 'Please allow camera access and try again');
+                showResult('error', 'Please allow camera access and try again', []);
             }
         }
         
@@ -201,8 +210,43 @@
             return canvas.toDataURL('image/jpeg');
         }
         
-        // Show simple result
-        function showResult(type, message) {
+        // Text-to-Speech function
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                // Cancel any ongoing speech
+                window.speechSynthesis.cancel();
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 0.9;  // Slightly slower for clarity
+                utterance.pitch = 1.0;
+                utterance.volume = 1.0;
+                
+                window.speechSynthesis.speak(utterance);
+                return true;
+            }
+            return false;
+        }
+        
+        // Format names list for display and speech
+        function formatNames(names) {
+            if (names.length === 0) return {display: '', speech: ''};
+            if (names.length === 1) return {display: names[0], speech: names[0]};
+            if (names.length === 2) return {
+                display: `${names[0]} and ${names[1]}`,
+                speech: `${names[0]} and ${names[1]}`
+            };
+            
+            // For 3+ names: "Akanksha, Raj and Indrajit"
+            const last = names[names.length - 1];
+            const others = names.slice(0, -1);
+            return {
+                display: `${others.join(', ')} and ${last}`,
+                speech: `${others.join(', ')} and ${last}`
+            };
+        }
+        
+        // Show result with names and voice
+        function showResult(type, message, names = []) {
             const resultDiv = document.getElementById('result');
             
             let html = `
@@ -211,16 +255,29 @@
                         <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
                     </div>
                     <div class="result-message">${message}</div>
-                </div>
             `;
             
+            // Show names if available
+            if (names.length > 0) {
+                const formattedNames = formatNames(names);
+                html += `<div class="names-list">${formattedNames.display}</div>`;
+                
+                // Voice announcement for success
+                if (type === 'success') {
+                    setTimeout(() => {
+                        speakText(`Thank you ${formattedNames.speech}`);
+                    }, 500);
+                }
+            }
+            
+            html += `</div>`;
             resultDiv.innerHTML = html;
             
-            // Auto-hide after 3 seconds for success
-            if (type === 'success') {
+            // Auto-hide after 4 seconds (if no voice support)
+            if (type === 'success' && !('speechSynthesis' in window)) {
                 setTimeout(() => {
                     resultDiv.innerHTML = '';
-                }, 3000);
+                }, 4000);
             }
         }
         
@@ -247,12 +304,24 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    showResult('success', 'Attendance marked successfully');
+                    // Extract names from recognized faces
+                    const recognizedNames = data.recognized_faces ? 
+                        data.recognized_faces.map(face => face.name) : [];
+                    
+                    if (recognizedNames.length > 0) {
+                        // Show success with names
+                        showResult('success', 'Attendance marked for', recognizedNames);
+                    } else {
+                        // No faces recognized
+                        showResult('error', 'No faces recognized. Please try again.', []);
+                    }
                 } else {
-                    showResult('error', 'Please try again');
+                    // API error
+                    showResult('error', 'Please try again', []);
                 }
             } catch (error) {
-                showResult('error', 'Please try again');
+                // Network error
+                showResult('error', 'Please try again', []);
             } finally {
                 button.innerHTML = originalText;
                 button.disabled = false;
